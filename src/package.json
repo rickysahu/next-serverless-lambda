@@ -5,13 +5,16 @@
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
+    "deploy": "npm run build && SLS_DEBUG=* serverless deploy --aws-profile xxx --region us-east-1",
     "lint": "next lint"
   },
   "dependencies": {
+    "bootstrap": "^5.2.2",
+    "express": "^4.17.1",
     "next": "13.0.0",
     "react": "18.2.0",
-    "express": "^4.17.1",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "serverless-http": "^3.1.0"
   },
   "devDependencies": {
     "eslint": "8.26.0",

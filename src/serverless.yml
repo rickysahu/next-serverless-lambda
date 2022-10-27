@@ -1,0 +1,81 @@
+service: next-serverless-lambda-site
+
+plugins:
+  - serverless-apigw-binary
+  - serverless-domain-manager
+  - serverless-vpc-discovery
+
+custom:
+  domain: 'domain.com'
+  stage: ${opt:aws-profile, 'xxx'}
+  region: ${opt:region, 'us-east-1'}
+  apigwBinary:
+    types:
+      - '*/*'
+  customDomain:
+    domainName: "${self:custom.domain}"
+    basePath: "/app"
+    stage: ${self:custom.stage}
+    endpointType: 'edge'
+    createRoute53Record: true
+  vpc:
+    vpcName: 'default' # these vpc & subnet name needs to be set manually before running the sls deploy
+    subnetNames:
+      - 'xxx'
+    securityGroupNames:
+      - 'default'
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: ${self:custom.stage}
+  region: ${self:custom.region}
+  memorySize: 1024 # default is 1024
+  timeout: 180 # default is 6
+  role: nextServerlessLambdaSiteRole
+  environment:
+    NODE_ENV: production
+
+functions:
+  server:
+    handler: index.server
+    name: ${self:service}
+    description: ${self:service} (${opt:description, "No description provided"})
+    events:
+      - http: 
+          method: ANY 
+          path: /
+      - http: 
+          method: ANY 
+          path: /{proxy+}
+
+resources:
+  Resources:
+    nextServerlessLambdaSiteDbPolicy:
+      Type: AWS::IAM::ManagedPolicy
+      Properties:
+        Description: "nextServerlessLambdaSiteDbPolicy"
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - logs:CreateLogGroup
+                - logs:CreateLogStream
+              Resource: arn:aws:logs:${self:provider.region}:*:log-group:/aws/lambda/*:*
+    nextServerlessLambdaSiteRole:
+      Type: AWS::IAM::Role
+      Properties:
+        Path: /my/default/path/
+        RoleName: nextServerlessLambdaSiteRole${self:custom.stage}${self:provider.region} # required if you want to use 'serverless deploy --function' later on
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+          - Ref: nextServerlessLambdaSiteDbPolicy
